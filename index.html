@@ -13,9 +13,15 @@
 
 <h1>Field</h1>
 <canvas id="canvas" width="800" height="400"></canvas><br>
-<button onclick="generateMap();">Generate Map</button>
+
+<form id="control">
+  <label for="seed">Seed:</label>
+  <input type="text" id="seed" name="seed" value="10071974">
+  <button onclick="generateMap();">Generate Map</button>
+</form>
 
 <script src="map.js"></script>
 
 </body>
+
 </html>
