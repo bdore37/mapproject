@@ -6,3 +6,6 @@ Features:
 - rivers and water erosion
 - various earth/soil types that resulting from changes that react differently
 - macro weather patterns that influence erosion
+
+Check it out here:
+https://bdore37.github.io/mapproject/
