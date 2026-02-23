@@ -1,6 +1,6 @@
 // -- Initialize global variables --
 
-const seedInput = getDocumentById("seed");
+const seedInput = getElementById("seed");
 let theSeed = seedInput.value; // 0 < X < m
 const mapWidth = 40; // Maybe irrelevant with mapType sets
 const mapHeight = 20; // Maybe this becomes "size"
@@ -101,3 +101,4 @@ return result;
 
 
 }
+
