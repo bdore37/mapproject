@@ -1,6 +1,6 @@
 // -- Initialize global variables --
 
-const seedInput = getElementById("seed");
+const seedInput = document.getElementById("seed");
 let theSeed = seedInput.value; // 0 < X < m
 const mapWidth = 40; // Maybe irrelevant with mapType sets
 const mapHeight = 20; // Maybe this becomes "size"
@@ -26,7 +26,7 @@ this.pressure = 0; // Vector indicating pressure
 
 this.flood = function(depth) {
    // What happens to the water layer
-  
+   this.water.push(depth);  
 };
 this.erode = function()  {}; // This might actually be used for all layers to simulate movement from "high" to low
 this.warp = function() {}; // Maybe think of another name. Simulating continental drift
@@ -73,7 +73,6 @@ for (let r = 0; r < mapHeight; r++) {
   chunksWide = mapTypes.get("full")[r];
   chunkWidth = width / chunksWide;
 
-  //for (let c = 0; c < mapWidth; c++) {
   for (let c = 0; c < chunksWide; c++) {
     shade = Math.round(fullMap[r][c].value * 100);
     hslString = hslStringA + shade + hslStringB;
@@ -99,6 +98,6 @@ result = result / modulus;
 
 return result;
 
-
 }
+
 
