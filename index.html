@@ -17,6 +17,8 @@
 <form id="control">
   <label for="seed">Seed:</label>
   <input type="number" id="seed" name="seed" min="0" max="2147483646" value="10071974">
+  <label for="mapsize">Size:</label>
+  <input type="number" id="mapsize" name="mapsize" min="8" max="200" value="200" disabled>
   <label for="flooddepth">Flood depth:</label>
   <input type="range" id="flooddepth" name-"flooddepth" min="0" max="1" step="0.01" value="0" disabled>
   <input type="button" onclick="floodAll();" value="Flood" disabled>

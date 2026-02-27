@@ -6,13 +6,15 @@ let theSeed = seedInput.value; // 0 < X < m
 const floodDepthInput = document.getElementById("flooddepth");
 const drainSwitch = document.getElementById("drain").checked;
 
-const mapSize = 10; // Should be even for now
+const mapSize = 80;//document.getElementById("mapsize"); // Should be even for now
 const fullMap = [[]]; // Multidimensional ([r][c]) array
 
 // -- Set Up Maps Structures --
 
 const mapTypes = new Map();
 buildStructures();
+
+generateMap();
 
 // -- Objects --
 
@@ -235,13 +237,21 @@ function smooth(chunk) {
 // Average value of neighborhood
 
 let tempValue = 0;
-let neighbors = chunk.neighborhood();
+let neighborhood = chunk.neighborhood();
+let neighbors = chunk.neighbors.all();
+let tempNum = 0;
+
+for (let n = 0; n < neighborhood.length; n++) {
+  tempValue += neighborhood[n].value;
+}
 
 for (let n = 0; n < neighbors.length; n++) {
   tempValue += neighbors[n].value;
+  tempValue += neighbors[n].value;
 }
 
-return tempValue / neighbors.length;
+tempNum = 2 * neighbors.length + neighborhood.length;
+return tempValue / tempNum;
 }
 
 function floodAll() {
