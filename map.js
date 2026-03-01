@@ -6,7 +6,7 @@ let theSeed = seedInput.value; // 0 < X < m
 const floodDepthInput = document.getElementById("flooddepth");
 const drainSwitch = document.getElementById("drain").checked;
 
-const mapSize = 80;//document.getElementById("mapsize"); // Should be even for now
+const mapSize = 100;//document.getElementById("mapsize"); // Should be even for now
 const fullMap = [[]]; // Multidimensional ([r][c]) array
 
 // -- Set Up Maps Structures --
@@ -15,6 +15,8 @@ const mapTypes = new Map();
 buildStructures();
 
 generateMap();
+
+test();
 
 // -- Objects --
 
@@ -235,6 +237,7 @@ for (let r = 0; r < mapSize; r++) {
 
 function smooth(chunk) {
 // Average value of neighborhood
+// Unused?
 
 let tempValue = 0;
 let neighborhood = chunk.neighborhood();
@@ -252,6 +255,63 @@ for (let n = 0; n < neighbors.length; n++) {
 
 tempNum = 2 * neighbors.length + neighborhood.length;
 return tempValue / tempNum;
+}
+
+function smoothX(chunk, size) {
+// Average value of neighbors within "size"
+// Uses Set to count each chunk only once
+
+const neighbors = chunk.neighbors.all();
+const regionSet = new Set();
+const regionArr = [];
+let value = 0;
+
+regionSet.add(chunk);
+for (let n = 0; n < neighbors.length; n++) {
+  regionSet.add(neighbors[n]);
+}
+
+for (let n = 0; n < size; n++) {
+  for (const i of regionSet.values()) {
+    for (let l = 0; l < i.neighbors.all().length; l++) {
+      regionArr.push(i.neighbors.all()[l]);
+    }
+  }
+  for (let i = 0; i < regionArr.length; i++) {
+    regionSet.add(regionArr[i]);
+  }
+  regionArr.length = 0;
+}
+
+// Convert the Set back into array
+for (const n of regionSet.values()) {
+  regionArr.push(n);
+}
+
+for (const n of regionArr) {
+  value += n.value;
+}
+
+return (value / regionArr.length);
+}
+
+function stretch() {
+// Once the map is smoothed, stretch the values from 0 to 1
+
+let max = 0;
+let min = 1;
+let range = 0;
+
+for (let r = 0; r < mapSize; r++) {
+  for (let c = 0; c < mapTypes.get("full")[r]; c++) {
+    if (fullMap[r][c].value < min) min = fullMap[r][c].value;
+    if (fullMap[r][c].value > max) max = fullMap[r][c].value;
+  }
+}
+
+range = max - min;
+
+
 }
 
 function floodAll() {
@@ -292,6 +352,12 @@ drawMap();
 
 }
 
+function test() {
+// Use this to hold any tests
+
+  console.log(smoothX(fullMap[10][10],4));
+}
+
 function generateMap() {
 // Draws the map after the button is pushed
 
@@ -314,7 +380,7 @@ assignNeighbors();
 
 for (let r = 0; r < mapSize; r++) {
   for (let c = 0; c < rWidth[r]; c++) {
-    fullMap[r][c].earth.push(new earthObj(0, smooth(fullMap[r][c])));
+    fullMap[r][c].earth.push(new earthObj(0, smoothX(fullMap[r][c], 4)));
   }
 }
 
