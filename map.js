@@ -6,7 +6,7 @@ let theSeed = seedInput.value; // 0 < X < m
 const floodDepthInput = document.getElementById("flooddepth");
 const drainSwitch = document.getElementById("drain").checked;
 
-const mapSize = 100;//document.getElementById("mapsize"); // Should be even for now
+const mapSize = 50;//document.getElementById("mapsize"); // Should be even for now
 const fullMap = [[]]; // Multidimensional ([r][c]) array
 
 // -- Set Up Maps Structures --
@@ -16,7 +16,7 @@ buildStructures();
 
 generateMap();
 
-test();
+//test();
 
 // -- Objects --
 
@@ -60,6 +60,9 @@ function earthObj(start, value) {
 this.type = "";
 this.start = start; // Where this layer starts
 this.value = value; // How deep/high this layer is
+this.top = function() {
+  return this.start + this.value;
+}
 
 }
 
@@ -74,9 +77,10 @@ this.water = 0; // -Array of water layers- Currently level of water
 this.air = []; // Array of air layers
 this.pressure = 0; // Vector indicating pressure
 
-this.neighbors = {}; // All chunks touching this one
+this.neighbors = {}; // All chunks touching this one, assigned externally
 this.neighborhood = function() {
 // All chunks touching neighbors
+// UNUSED
   let temp = [];
   let members = [];
 
@@ -93,6 +97,18 @@ this.neighborhood = function() {
   return members;
 };
 
+this.top = function() {
+// Top dry, solid layer
+  let layers = this.earth;
+  let z = 0;
+  if (layers.length > 0) {
+    for (let n of layers) {
+      z = n.top();
+    }
+  }
+  return z;
+}
+
 this.flood = function(depth) {
 // What happens to the water layer
   this.water += depth;
@@ -101,7 +117,7 @@ this.flood = function(depth) {
 
 this.drain = function() {
 // This drains the water layer, forming rivers and pools, causing erotion
-  let thisSurface = this.value + this.water;
+  let thisSurface = this.top() + this.water;
   let lowestSurface = thisSurface;
   let nextSurface = thisSurface;
   let tempSurface = 0;
@@ -110,28 +126,27 @@ this.drain = function() {
   let drainAmount = 0;
 
   if (this.water > 0) {
-    for (let l = 0; l < this.neighbors.length; l++) {
-      tempChunk = this.neighbors[l];
-      tempSurface = tempChunk.value + tempChunk.water;
+    for (let l = 0; l < this.neighbors.all().length; l++) {
+      tempChunk = this.neighbors.all()[l];
+      tempSurface = tempChunk.top() + tempChunk.water;
       if (tempSurface < lowestSurface) {
         lowestSurface = tempSurface;
         recipientChunk = tempChunk;
       }
     }
-    for (let l = 0; l < this.neighbors.length; l++) {
-      tempChunk = this.neighbors[l];
-      tempSurface = tempChunk.value + tempChunk.water;
+    for (let l = 0; l < this.neighbors.all().length; l++) {
+      tempChunk = this.neighbors.all()[l];
+      tempSurface = tempChunk.top() + tempChunk.water;
       if (tempSurface > lowestSurface) {
         if(tempSurface < nextSurface) nextSurface = tempSurface;
       }
     }
+
     drainAmount = nextSurface - lowestSurface;
     if (drainAmount > this.water) drainAmount = this.water;
-    if (nextSurface === thisSurface) drainAmount = drainAmount / 2;
-    if (nextSurface < thisSurface) {
-      this.water = this.water - drainAmount;
-      recipientChunk.water = recipientChunk.water + drainAmount;
-    }
+    this.water = this.water - drainAmount;
+    recipientChunk.water = recipientChunk.water + drainAmount;
+    //console.log(drainAmount);
   }
 };
 
@@ -235,28 +250,6 @@ for (let r = 0; r < mapSize; r++) {
 
 }
 
-function smooth(chunk) {
-// Average value of neighborhood
-// Unused?
-
-let tempValue = 0;
-let neighborhood = chunk.neighborhood();
-let neighbors = chunk.neighbors.all();
-let tempNum = 0;
-
-for (let n = 0; n < neighborhood.length; n++) {
-  tempValue += neighborhood[n].value;
-}
-
-for (let n = 0; n < neighbors.length; n++) {
-  tempValue += neighbors[n].value;
-  tempValue += neighbors[n].value;
-}
-
-tempNum = 2 * neighbors.length + neighborhood.length;
-return tempValue / tempNum;
-}
-
 function smoothX(chunk, size) {
 // Average value of neighbors within "size"
 // Uses Set to count each chunk only once
@@ -304,20 +297,24 @@ let range = 0;
 
 for (let r = 0; r < mapSize; r++) {
   for (let c = 0; c < mapTypes.get("full")[r]; c++) {
-    if (fullMap[r][c].value < min) min = fullMap[r][c].value;
-    if (fullMap[r][c].value > max) max = fullMap[r][c].value;
+    if (fullMap[r][c].earth[0].value < min) { min = fullMap[r][c].earth[0].value };
+    if (fullMap[r][c].earth[0].value > max) { max = fullMap[r][c].earth[0].value };
   }
 }
 
 range = max - min;
 
-
+for (let r = 0; r < mapSize; r++) {
+  for (let c = 0; c < mapTypes.get("full")[r]; c++) {
+    fullMap[r][c].earth[0].value = (fullMap[r][c].earth[0].value - min) / range;
+  }
+}
 }
 
 function floodAll() {
 // Add water to entire map
 
-depth = floodDepthInput.value;
+depth = 0.2;// floodDepthInput.value;
 
 for (let r = 0; r < mapSize; r++) {
   for (let c = 0; c < mapTypes.get("full")[r]; c++) {
@@ -326,36 +323,32 @@ for (let r = 0; r < mapSize; r++) {
 }
 
 drawMap();
-if (drainSwitch) drainAll();
+// if (drainSwitch) drainAll();
+drainAll();
 
 }
 
-function drainAll(){
+function drainAll() {
 
 rowIndex = mapTypes.get("fullRowIndex");
 indexMax = mapSize - 1;
-drainCycles = 5;
+drainCycles = 400000; // 400000 is good for mapsize 50 (about 3000 chunks)
 maxChunks = rowIndex[indexMax] + mapTypes.get("full")[indexMax];
 
 for (let i = 0; i < drainCycles; i++) {
   let rnd = Math.round(prng(theSeed) * (maxChunks - 1));
-
-  let n = 0;
-  while (rnd < rowIndex[n]) n++;
-  fullMap[n][rnd - rowIndex[n]].drain();
-
-  console.log("rnd = ", rnd, "drain: ", n, (rnd - rowIndex[n]));
-
+  let n = 1;
+  while (rnd >= rowIndex[n]) { n++ };
+  fullMap[n - 1][rnd - rowIndex[n - 1]].drain();
 }
 
 drawMap();
-
 }
 
 function test() {
 // Use this to hold any tests
 
-  console.log(smoothX(fullMap[10][10],4));
+  //console.log(smoothX(fullMap[10][10],4));
 }
 
 function generateMap() {
@@ -378,13 +371,17 @@ for (let r = 0; r < mapSize; r++) {
 
 assignNeighbors();
 
+let newValue = 0;
 for (let r = 0; r < mapSize; r++) {
   for (let c = 0; c < rWidth[r]; c++) {
-    fullMap[r][c].earth.push(new earthObj(0, smoothX(fullMap[r][c], 4)));
+    newValue = smoothX(fullMap[r][c], 5);
+    fullMap[r][c].earth.push(new earthObj(0, newValue));
   }
 }
 
+stretch();
 drawMap();
+floodAll();
 
 }
 
@@ -413,7 +410,7 @@ for (let r = 0; r < mapSize; r++) {
 
   for (let c = 0; c < chunksWide; c++) {
     saturation = Math.round(fullMap[r][c].water * 100);
-    shade = Math.round(fullMap[r][c].earth[0].value * 100);
+    shade = Math.round(fullMap[r][c].top() * 100);
     hslString = hslStringA + saturation + hslStringB + shade + hslStringC;
     d.fillStyle = hslString;
     d.fillRect(c * chunkWidth, r * chunkHeight, (c + 1) * chunkWidth, (r + 1) * chunkHeight);
